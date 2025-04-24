@@ -65,7 +65,7 @@ public class Algo {
             done[u] = true;
             if (u == dst) {
                 break;
-            } 
+            }
             for (int v : g.outNeighbors(u)) {
                 int alt = dist[u] + g.getWeight(u, v);
                 if (alt < dist[v]) {
@@ -83,5 +83,33 @@ public class Algo {
             path.add(0, at);
         }
         return path;
+    }
+
+    public static List<Integer> toposort(Graph g) {
+        int n = g.getSize();
+        boolean[] seen = new boolean[n];
+        Deque<Integer> stack = new ArrayDeque<>();
+
+        for (int i = 0; i < n; i++) {
+            dfsTopoHelper(i, g, seen, stack);
+        }
+
+        List<Integer> sort = new ArrayList<>();
+        while (!stack.isEmpty()) {
+            sort.add(stack.pop());
+        }
+
+        return sort;
+    }
+
+    private static void dfsTopoHelper(int v, Graph g, boolean[] seen, Deque<Integer> stack) {
+        seen[v] = true;
+
+        for (int neighbor : g.outNeighbors(v)) {
+            if (!seen[neighbor]) {
+                dfsTopoHelper(neighbor, g, seen, stack);
+            }
+        }
+        stack.push(v);
     }
 }
