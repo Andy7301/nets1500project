@@ -5,8 +5,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.awt.Point;
-import javax.swing.Timer;
 
 public class Visualizer extends JPanel implements MouseListener {
 
@@ -16,9 +14,43 @@ public class Visualizer extends JPanel implements MouseListener {
     private final int radius = 20;
     private int selectedNode = -1;
 
+    private List<Integer> fullPath = new ArrayList<>();
     private List<Integer> highlightedPath = new ArrayList<>();
     private Timer timer;
-    private int highlightIndex = 0;
+    private int highlightIndex = -1;
+
+    public void setPath(List<Integer> path) {
+        fullPath = new ArrayList<>(path);
+        highlightedPath.clear();
+        highlightIndex = -1;
+        repaint();
+    }
+    
+    public void nextStep() {
+        if (highlightIndex < fullPath.size() - 1) {
+            highlightIndex++;
+            highlightedPath.add(fullPath.get(highlightIndex));
+            repaint();
+        }
+    }
+    
+    public void prevStep() {
+        if (highlightIndex >= 0) {
+            highlightedPath.remove(highlightIndex);
+            highlightIndex--;
+            repaint();
+        }
+    }
+    
+    public int getCurrentNode() {
+        if (highlightIndex >= 0 && highlightIndex < highlightedPath.size())
+            return highlightedPath.get(highlightIndex);
+        return -1;
+    }
+    
+    public int getStepNumber() {
+        return highlightIndex + 1;  // 1-based
+    }
 
     private static final int MAX_NODES = 100; // Up to 100 nodes
 
@@ -30,7 +62,7 @@ public class Visualizer extends JPanel implements MouseListener {
     }
 
     @Override
-    public void paintComponent(Graphics g) {
+    protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         setBackground(Color.WHITE);
 
@@ -77,7 +109,7 @@ public class Visualizer extends JPanel implements MouseListener {
             } else {
                 if (selectedNode != nodeIdx && !graph.hasEdge(selectedNode, nodeIdx)) {
                     graph.addEdge(selectedNode, nodeIdx, 1); // Add undirected edges
-                    graph.addEdge(nodeIdx, selectedNode, 1); // <-- key line (both ways)
+                    graph.addEdge(nodeIdx, selectedNode, 1); 
                     edges.add(new int[]{selectedNode, nodeIdx});
                 }
                 selectedNode = -1;
@@ -134,90 +166,114 @@ public class Visualizer extends JPanel implements MouseListener {
             JButton dijkstraButton = new JButton("Dijkstra");
             JButton topoButton = new JButton("Topological Sort");
 
+            JButton prevButton = new JButton("Prev Step");
+            JButton nextButton = new JButton("Next Step");
+
+            JTextArea explanation = new JTextArea(4, 20);
+
+            explanation.setEditable(false);
+            explanation.setLineWrap(true);
+            explanation.setWrapStyleWord(true);
+
+            explanation.setText(
+                "Instructions:\n\n" +
+                "• Click on empty space to add a node.\n" +
+                "• Click two nodes to connect them with an edge.\n" +
+                "• Buttons below let you visualize BFS, DFS, Dijkstra, or Topological Sort.\n" +
+                "• After selecting an algorithm, use the Prev Step  and Next Step buttons to walk through each step.\n" +
+                "• Each step will highlight visited nodes, and display the current node.\n\n" +
+                "Start by adding nodes and edges!"
+            );
+
             bfsButton.addActionListener(e -> {
                 String input = JOptionPane.showInputDialog("Start node for BFS:");
                 int start = Integer.parseInt(input);
                 List<Integer> order = Algo.bfs(panel.getGraph(), start);
-                panel.visualize(order);
+                panel.setPath(order);
+                explanation.setText(
+                    "Breadth-First Search (BFS)\n" +
+                    "1) enqueue start node\n" +
+                    "2) while queue not empty:\n" +
+                    "     • dequeue u, visit\n" +
+                    "     • enqueue all unvisited neighbors\n" +
+                    "Use Next/Prev to step."
+                );
             });
 
             dfsButton.addActionListener(e -> {
                 String input = JOptionPane.showInputDialog("Start node for DFS:");
                 int start = Integer.parseInt(input);
                 List<Integer> order = Algo.dfs(panel.getGraph(), start);
-                panel.visualize(order);
+                panel.setPath(order);
+                explanation.setText(
+                    "Depth-First Search (DFS)\n" +
+                    "1) push start on stack\n" +
+                    "2) while stack not empty:\n" +
+                    "     • pop u, visit\n" +
+                    "     • push all unvisited neighbors\n" +
+                    "Use Next/Prev to step."
+                );
             });
 
             dijkstraButton.addActionListener(e -> {
                 int src = Integer.parseInt(JOptionPane.showInputDialog("Source node for Dijkstra:"));
                 int dst = Integer.parseInt(JOptionPane.showInputDialog("Destination node for Dijkstra:"));
                 List<Integer> path = Algo.dijkstra(panel.getGraph(), src, dst);
-                panel.visualize(path);
+                panel.setPath(path);
+                explanation.setText(
+                    "Dijkstra’s Shortest Path\n" +
+                    "1) initialize dist[src]=0, others=∞\n" +
+                    "2) extract-min u from PQ, relax all edges (u→v)\n" +
+                    "3) repeat until dst extracted\n" +
+                    "Use Next/Prev to see each node in the final path."
+                );
             });
 
             topoButton.addActionListener(e -> {
-                List<Integer> order = topoSort(panel.getGraph());
+                List<Integer> order = Algo.toposort(panel.getGraph());
                 if (order == null) {
                     JOptionPane.showMessageDialog(panel, "Graph is not a DAG. Topological sort not possible.");
                 } else {
-                    panel.visualize(order);
+                    panel.setPath(order);
+                    explanation.setText(
+                        "Topological Sort via DFS:\n" +
+                        "1) run DFS from every unvisited node\n" +
+                        "2) on return push node onto stack\n" +
+                        "3) pop stack for final order\n" +
+                        "Use Next/Prev to step."
+                    );
                 }
+            });
+
+            prevButton.addActionListener(e -> {
+                panel.prevStep();
+                int node = panel.getCurrentNode();
+                explanation.setText("Step " + panel.getStepNumber() +
+                    ": visited node " + node);
+            });
+            nextButton.addActionListener(e -> {
+                panel.nextStep();
+                int node = panel.getCurrentNode();
+                explanation.setText("Step " + panel.getStepNumber() +
+                    ": visited node " + node);
             });
 
             buttons.add(bfsButton);
             buttons.add(dfsButton);
             buttons.add(dijkstraButton);
             buttons.add(topoButton);
+            buttons.add(prevButton);
+            buttons.add(nextButton);    
 
             frame.add(buttons, BorderLayout.SOUTH);
+            frame.add(new JScrollPane(explanation), BorderLayout.EAST);
             frame.setVisible(true);
         });
     }
 
-    private static List<Integer> topoSort(Graph g) {
-        int n = g.getSize();
-        int[] inDegree = new int[n];
-        for (int u = 0; u < n; u++) {
-            for (int v : g.outNeighbors(u)) {
-                inDegree[v]++;
-            }
-        }
-
-        Queue<Integer> q = new ArrayDeque<>();
-        for (int i = 0; i < n; i++) {
-            if (inDegree[i] == 0) {
-                q.add(i);
-            }
-        }
-
-        List<Integer> order = new ArrayList<>();
-        while (!q.isEmpty()) {
-            int u = q.poll();
-            order.add(u);
-            for (int v : g.outNeighbors(u)) {
-                inDegree[v]--;
-                if (inDegree[v] == 0) {
-                    q.add(v);
-                }
-            }
-        }
-
-        if (order.size() != n) {
-            return null; // not a DAG
-        }
-        return order;
-    }
-
     // Empty MouseListener methods
-    @Override
-    public void mouseClicked(MouseEvent e) {}
-
-    @Override
-    public void mouseReleased(MouseEvent e) {}
-
-    @Override
-    public void mouseEntered(MouseEvent e) {}
-
-    @Override
-    public void mouseExited(MouseEvent e) {}
+    @Override public void mouseClicked(MouseEvent e) {}
+    @Override public void mouseReleased(MouseEvent e) {}
+    @Override public void mouseEntered(MouseEvent e) {}
+    @Override public void mouseExited(MouseEvent e) {}
 }
