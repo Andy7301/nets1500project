@@ -1,4 +1,5 @@
 import java.util.*;
+// make sure all the algos still work if the graph is disconnected
 
 public class Algo {
     public static List<Integer> bfs(Graph g, int start) {

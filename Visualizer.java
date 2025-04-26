@@ -19,40 +19,9 @@ public class Visualizer extends JPanel implements MouseListener {
     private Timer timer;
     private int highlightIndex = -1;
 
-    public void setPath(List<Integer> path) {
-        fullPath = new ArrayList<>(path);
-        highlightedPath.clear();
-        highlightIndex = -1;
-        repaint();
-    }
-    
-    public void nextStep() {
-        if (highlightIndex < fullPath.size() - 1) {
-            highlightIndex++;
-            highlightedPath.add(fullPath.get(highlightIndex));
-            repaint();
-        }
-    }
-    
-    public void prevStep() {
-        if (highlightIndex >= 0) {
-            highlightedPath.remove(highlightIndex);
-            highlightIndex--;
-            repaint();
-        }
-    }
-    
-    public int getCurrentNode() {
-        if (highlightIndex >= 0 && highlightIndex < highlightedPath.size())
-            return highlightedPath.get(highlightIndex);
-        return -1;
-    }
-    
-    public int getStepNumber() {
-        return highlightIndex + 1;  // 1-based
-    }
 
-    private static final int MAX_NODES = 100; // Up to 100 nodes
+    private static final int MAX_NODES = 100;
+    private boolean isDirected = false;
 
     public Visualizer() {
         this.nodes = new ArrayList<>();
@@ -71,7 +40,7 @@ public class Visualizer extends JPanel implements MouseListener {
         for (int[] edge : edges) {
             Point p1 = nodes.get(edge[0]);
             Point p2 = nodes.get(edge[1]);
-            g.drawLine(p1.x, p1.y, p2.x, p2.y);
+            drawEdge(g, p1, p2, isDirected);
         }
 
         // Draw nodes
@@ -89,13 +58,52 @@ public class Visualizer extends JPanel implements MouseListener {
         }
     }
 
+    private void drawEdge(Graphics g, Point p1, Point p2, boolean directed) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setStroke(new BasicStroke(2));
+
+        double dx = p2.x - p1.x;
+        double dy = p2.y - p1.y;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist == 0) return; // Avoid divide-by-zero if points are identical
+
+        // Scale the vector to radius length
+        double offsetX = dx * radius / dist;
+        double offsetY = dy * radius / dist;
+
+        // Compute shifted points
+        int startX = (int) (p1.x + offsetX);
+        int startY = (int) (p1.y + offsetY);
+        int endX = (int) (p2.x - offsetX);
+        int endY = (int) (p2.y - offsetY);
+
+        // Draw the line
+        g2.drawLine(startX, startY, endX, endY);
+
+        if (directed) {
+            double phi = Math.toRadians(30);
+            int barb = 10;
+
+            double theta = Math.atan2(endY - startY, endX - startX);
+
+            int x, y;
+            for (int j = 0; j < 2; j++) {
+                double angle = theta + (j == 0 ? phi : -phi);
+                x = (int) (endX - barb * Math.cos(angle));
+                y = (int) (endY - barb * Math.sin(angle));
+                g2.drawLine(endX, endY, x, y);
+            }
+        }
+    }
+
+
     @Override
     public void mousePressed(MouseEvent e) {
         Point click = e.getPoint();
         int nodeIdx = getNodeAt(click);
 
         if (nodeIdx == -1) {
-            // No node clicked -> Add a new node
             if (nodes.size() < MAX_NODES) {
                 nodes.add(click);
                 repaint();
@@ -103,13 +111,14 @@ public class Visualizer extends JPanel implements MouseListener {
                 JOptionPane.showMessageDialog(this, "Max number of nodes reached!");
             }
         } else {
-            // Node clicked
             if (selectedNode == -1) {
                 selectedNode = nodeIdx;
             } else {
                 if (selectedNode != nodeIdx && !graph.hasEdge(selectedNode, nodeIdx)) {
-                    graph.addEdge(selectedNode, nodeIdx, 1); // Add undirected edges
-                    graph.addEdge(nodeIdx, selectedNode, 1); 
+                    graph.addEdge(selectedNode, nodeIdx, 1);
+                    if (!isDirected) {
+                        graph.addEdge(nodeIdx, selectedNode, 1);
+                    }
                     edges.add(new int[]{selectedNode, nodeIdx});
                 }
                 selectedNode = -1;
@@ -147,8 +156,56 @@ public class Visualizer extends JPanel implements MouseListener {
         timer.start();
     }
 
+    public void setPath(List<Integer> path) {
+        fullPath = new ArrayList<>(path);
+        highlightedPath.clear();
+        highlightIndex = -1;
+        repaint();
+    }
+
+    public void nextStep() {
+        if (highlightIndex < fullPath.size() - 1) {
+            highlightIndex++;
+            highlightedPath.add(fullPath.get(highlightIndex));
+            repaint();
+        }
+    }
+
+    public void prevStep() {
+        if (highlightIndex >= 0) {
+            highlightedPath.remove(highlightIndex);
+            highlightIndex--;
+            repaint();
+        }
+    }
+
+    public int getCurrentNode() {
+        if (highlightIndex >= 0 && highlightIndex < highlightedPath.size())
+            return highlightedPath.get(highlightIndex);
+        return -1;
+    }
+
+    public int getStepNumber() {
+        return highlightIndex + 1;
+    }
+
     public Graph getGraph() {
         return graph;
+    }
+
+    public void toggleDirected() {
+        isDirected = !isDirected;
+        repaint();
+    }
+
+    public void resetAll() {
+        nodes.clear();
+        edges.clear();
+        fullPath.clear();
+        highlightedPath.clear();
+        selectedNode = -1;
+        highlightIndex = -1;
+        repaint();
     }
 
     public static void main(String[] args) {
@@ -157,10 +214,12 @@ public class Visualizer extends JPanel implements MouseListener {
 
             JFrame frame = new JFrame("Graph Visualizer");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(800, 600);
+            frame.setSize(1000, 700);
             frame.add(panel, BorderLayout.CENTER);
 
-            JPanel buttons = new JPanel();
+            JPanel sidebar = new JPanel();
+            sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.X_AXIS));
+
             JButton bfsButton = new JButton("BFS");
             JButton dfsButton = new JButton("DFS");
             JButton dijkstraButton = new JButton("Dijkstra");
@@ -168,21 +227,23 @@ public class Visualizer extends JPanel implements MouseListener {
 
             JButton prevButton = new JButton("Prev Step");
             JButton nextButton = new JButton("Next Step");
+            JButton toggleButton = new JButton("Toggle Directed/Undirected");
+            JButton resetButton = new JButton("Reset All");
+            JLabel modeLabel = new JLabel("Current Mode: Undirected");
 
-            JTextArea explanation = new JTextArea(4, 20);
 
+            JTextArea explanation = new JTextArea(8, 20);
             explanation.setEditable(false);
             explanation.setLineWrap(true);
             explanation.setWrapStyleWord(true);
 
             explanation.setText(
-                "Instructions:\n\n" +
-                "• Click on empty space to add a node.\n" +
-                "• Click two nodes to connect them with an edge.\n" +
-                "• Buttons below let you visualize BFS, DFS, Dijkstra, or Topological Sort.\n" +
-                "• After selecting an algorithm, use the Prev Step  and Next Step buttons to walk through each step.\n" +
-                "• Each step will highlight visited nodes, and display the current node.\n\n" +
-                "Start by adding nodes and edges!"
+                    "Instructions:\n\n" +
+                            "• Click to add nodes.\n" +
+                            "• Click two nodes to connect them.\n" +
+                            "• Toggle directed/undirected mode anytime.\n" +
+                            "• Reset to start over.\n" +
+                            "• Visualize BFS, DFS, Dijkstra, or Topological Sort."
             );
 
             bfsButton.addActionListener(e -> {
@@ -190,14 +251,6 @@ public class Visualizer extends JPanel implements MouseListener {
                 int start = Integer.parseInt(input);
                 List<Integer> order = Algo.bfs(panel.getGraph(), start);
                 panel.setPath(order);
-                explanation.setText(
-                    "Breadth-First Search (BFS)\n" +
-                    "1) enqueue start node\n" +
-                    "2) while queue not empty:\n" +
-                    "     • dequeue u, visit\n" +
-                    "     • enqueue all unvisited neighbors\n" +
-                    "Use Next/Prev to step."
-                );
             });
 
             dfsButton.addActionListener(e -> {
@@ -205,14 +258,6 @@ public class Visualizer extends JPanel implements MouseListener {
                 int start = Integer.parseInt(input);
                 List<Integer> order = Algo.dfs(panel.getGraph(), start);
                 panel.setPath(order);
-                explanation.setText(
-                    "Depth-First Search (DFS)\n" +
-                    "1) push start on stack\n" +
-                    "2) while stack not empty:\n" +
-                    "     • pop u, visit\n" +
-                    "     • push all unvisited neighbors\n" +
-                    "Use Next/Prev to step."
-                );
             });
 
             dijkstraButton.addActionListener(e -> {
@@ -220,13 +265,6 @@ public class Visualizer extends JPanel implements MouseListener {
                 int dst = Integer.parseInt(JOptionPane.showInputDialog("Destination node for Dijkstra:"));
                 List<Integer> path = Algo.dijkstra(panel.getGraph(), src, dst);
                 panel.setPath(path);
-                explanation.setText(
-                    "Dijkstra’s Shortest Path\n" +
-                    "1) initialize dist[src]=0, others=∞\n" +
-                    "2) extract-min u from PQ, relax all edges (u→v)\n" +
-                    "3) repeat until dst extracted\n" +
-                    "Use Next/Prev to see each node in the final path."
-                );
             });
 
             topoButton.addActionListener(e -> {
@@ -235,43 +273,40 @@ public class Visualizer extends JPanel implements MouseListener {
                     JOptionPane.showMessageDialog(panel, "Graph is not a DAG. Topological sort not possible.");
                 } else {
                     panel.setPath(order);
-                    explanation.setText(
-                        "Topological Sort via DFS:\n" +
-                        "1) run DFS from every unvisited node\n" +
-                        "2) on return push node onto stack\n" +
-                        "3) pop stack for final order\n" +
-                        "Use Next/Prev to step."
-                    );
                 }
             });
 
-            prevButton.addActionListener(e -> {
-                panel.prevStep();
-                int node = panel.getCurrentNode();
-                explanation.setText("Step " + panel.getStepNumber() +
-                    ": visited node " + node);
+            prevButton.addActionListener(e -> panel.prevStep());
+            nextButton.addActionListener(e -> panel.nextStep());
+            toggleButton.addActionListener(e -> {
+                panel.toggleDirected();
+                String mode = panel.isDirected ? "DIRECTED" : "UNDIRECTED";
+                JOptionPane.showMessageDialog(panel, "Graph is now " + mode + "!");
+                modeLabel.setText("Current Mode:" + mode);
             });
-            nextButton.addActionListener(e -> {
-                panel.nextStep();
-                int node = panel.getCurrentNode();
-                explanation.setText("Step " + panel.getStepNumber() +
-                    ": visited node " + node);
+            resetButton.addActionListener(e -> {
+                panel.resetAll();
             });
 
-            buttons.add(bfsButton);
-            buttons.add(dfsButton);
-            buttons.add(dijkstraButton);
-            buttons.add(topoButton);
-            buttons.add(prevButton);
-            buttons.add(nextButton);    
 
-            frame.add(buttons, BorderLayout.SOUTH);
+            sidebar.add(bfsButton);
+            sidebar.add(dfsButton);
+            sidebar.add(dijkstraButton);
+            sidebar.add(topoButton);
+            sidebar.add(prevButton);
+            sidebar.add(nextButton);
+            sidebar.add(toggleButton);
+            sidebar.add(resetButton);
+            sidebar.add(modeLabel);
+
+
+
+            frame.add(sidebar, BorderLayout.SOUTH);
             frame.add(new JScrollPane(explanation), BorderLayout.EAST);
             frame.setVisible(true);
         });
     }
 
-    // Empty MouseListener methods
     @Override public void mouseClicked(MouseEvent e) {}
     @Override public void mouseReleased(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}
