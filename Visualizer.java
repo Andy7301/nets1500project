@@ -1,3 +1,4 @@
+// Visualizer.java
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -19,9 +20,9 @@ public class Visualizer extends JPanel implements MouseListener {
     private Timer timer;
     private int highlightIndex = -1;
 
-
     private static final int MAX_NODES = 100;
     private boolean isDirected = false;
+    private boolean quizMode = false;
 
     public Visualizer() {
         this.nodes = new ArrayList<>();
@@ -64,39 +65,29 @@ public class Visualizer extends JPanel implements MouseListener {
 
         double dx = p2.x - p1.x;
         double dy = p2.y - p1.y;
-        double dist = Math.sqrt(dx * dx + dy * dy);
+        double dist = Math.hypot(dx, dy);
+        if (dist == 0) return;
 
-        if (dist == 0) return; // Avoid divide-by-zero if points are identical
-
-        // Scale the vector to radius length
         double offsetX = dx * radius / dist;
         double offsetY = dy * radius / dist;
-
-        // Compute shifted points
         int startX = (int) (p1.x + offsetX);
         int startY = (int) (p1.y + offsetY);
-        int endX = (int) (p2.x - offsetX);
-        int endY = (int) (p2.y - offsetY);
-
-        // Draw the line
+        int endX   = (int) (p2.x - offsetX);
+        int endY   = (int) (p2.y - offsetY);
         g2.drawLine(startX, startY, endX, endY);
 
         if (directed) {
             double phi = Math.toRadians(30);
             int barb = 10;
-
             double theta = Math.atan2(endY - startY, endX - startX);
-
-            int x, y;
             for (int j = 0; j < 2; j++) {
                 double angle = theta + (j == 0 ? phi : -phi);
-                x = (int) (endX - barb * Math.cos(angle));
-                y = (int) (endY - barb * Math.sin(angle));
+                int x = (int) (endX - barb * Math.cos(angle));
+                int y = (int) (endY - barb * Math.sin(angle));
                 g2.drawLine(endX, endY, x, y);
             }
         }
     }
-
 
     @Override
     public void mousePressed(MouseEvent e) {
@@ -129,10 +120,7 @@ public class Visualizer extends JPanel implements MouseListener {
 
     private int getNodeAt(Point p) {
         for (int i = 0; i < nodes.size(); i++) {
-            Point node = nodes.get(i);
-            if (node.distance(p) <= radius) {
-                return i;
-            }
+            if (nodes.get(i).distance(p) <= radius) return i;
         }
         return -1;
     }
@@ -140,14 +128,11 @@ public class Visualizer extends JPanel implements MouseListener {
     public void visualize(List<Integer> path) {
         highlightedPath.clear();
         highlightIndex = 0;
-        if (timer != null) {
-            timer.stop();
-        }
+        if (timer != null) timer.stop();
 
         timer = new Timer(500, e -> {
             if (highlightIndex < path.size()) {
-                highlightedPath.add(path.get(highlightIndex));
-                highlightIndex++;
+                highlightedPath.add(path.get(highlightIndex++));
                 repaint();
             } else {
                 ((Timer) e.getSource()).stop();
@@ -165,28 +150,16 @@ public class Visualizer extends JPanel implements MouseListener {
 
     public void nextStep() {
         if (highlightIndex < fullPath.size() - 1) {
-            highlightIndex++;
-            highlightedPath.add(fullPath.get(highlightIndex));
+            highlightedPath.add(fullPath.get(++highlightIndex));
             repaint();
         }
     }
 
     public void prevStep() {
         if (highlightIndex >= 0) {
-            highlightedPath.remove(highlightIndex);
-            highlightIndex--;
+            highlightedPath.remove(highlightIndex--);
             repaint();
         }
-    }
-
-    public int getCurrentNode() {
-        if (highlightIndex >= 0 && highlightIndex < highlightedPath.size())
-            return highlightedPath.get(highlightIndex);
-        return -1;
-    }
-
-    public int getStepNumber() {
-        return highlightIndex + 1;
     }
 
     public Graph getGraph() {
@@ -208,6 +181,95 @@ public class Visualizer extends JPanel implements MouseListener {
         repaint();
     }
 
+    private List<Integer> parseAnswer(String input) {
+        List<Integer> list = new ArrayList<>();
+        if (input == null) return list;
+        for (String tok : input.split(",")) {
+            list.add(Integer.parseInt(tok.trim()));
+        }
+        return list;
+    }
+
+    private void giveFeedback(List<Integer> user, List<Integer> correct) {
+        if (user.equals(correct)) {
+            JOptionPane.showMessageDialog(this, "Correct!");
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Not quite.\n" +
+                            "Your answer:    " + user + "\n" +
+                            "Correct answer: " + correct
+            );
+        }
+    }
+
+    private void startBFSQuiz() {
+        try {
+            String in = JOptionPane.showInputDialog(this, "Quiz BFS: enter start node:");
+            int start = Integer.parseInt(in.trim());
+            List<Integer> correct = Algo.bfs(graph, start);
+
+            String ans = JOptionPane.showInputDialog(
+                    this, "Enter your BFS order (comma-separated):"
+            );
+            List<Integer> user = parseAnswer(ans);
+            giveFeedback(user, correct);
+            visualize(correct);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid input. Aborting quiz.");
+        }
+    }
+
+    private void startDFSQuiz() {
+        try {
+            String in = JOptionPane.showInputDialog(this, "Quiz DFS: enter start node:");
+            int start = Integer.parseInt(in.trim());
+            List<Integer> correct = Algo.dfs(graph, start);
+
+            String ans = JOptionPane.showInputDialog(
+                    this, "Enter your DFS order (comma-separated):"
+            );
+            List<Integer> user = parseAnswer(ans);
+            giveFeedback(user, correct);
+            visualize(correct);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid input. Aborting quiz.");
+        }
+    }
+
+    private void startDijkstraQuiz() {
+        try {
+            String s1 = JOptionPane.showInputDialog(this, "Quiz Dijkstra: source node:");
+            int src = Integer.parseInt(s1.trim());
+            String s2 = JOptionPane.showInputDialog(this, "Destination node:");
+            int dst = Integer.parseInt(s2.trim());
+            List<Integer> correct = Algo.dijkstra(graph, src, dst);
+
+            String ans = JOptionPane.showInputDialog(
+                    this, "Enter shortest path (comma-separated):"
+            );
+            List<Integer> user = parseAnswer(ans);
+            giveFeedback(user, correct);
+            visualize(correct);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid input. Aborting quiz.");
+        }
+    }
+
+    private void startTopoQuiz() {
+        List<Integer> correct = Algo.toposort(graph);
+
+        String ans = JOptionPane.showInputDialog(
+                this, "Enter your topological sort order (comma-separated):"
+        );
+        List<Integer> user = parseAnswer(ans);
+        giveFeedback(user, correct);
+        visualize(correct);
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Visualizer panel = new Visualizer();
@@ -220,75 +282,108 @@ public class Visualizer extends JPanel implements MouseListener {
             JPanel sidebar = new JPanel();
             sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.X_AXIS));
 
-            JButton bfsButton = new JButton("BFS");
-            JButton dfsButton = new JButton("DFS");
+            JButton bfsButton      = new JButton("BFS");
+            JButton dfsButton      = new JButton("DFS");
             JButton dijkstraButton = new JButton("Dijkstra");
-            JButton topoButton = new JButton("Topological Sort");
+            JButton topoButton     = new JButton("Topological Sort");
 
-            JButton prevButton = new JButton("Prev Step");
-            JButton nextButton = new JButton("Next Step");
-            JButton toggleButton = new JButton("Toggle Directed/Undirected");
-            JButton resetButton = new JButton("Reset All");
+            JButton prevButton     = new JButton("Prev Step");
+            JButton nextButton     = new JButton("Next Step");
+            JButton toggleButton   = new JButton("Toggle Directed/Undirected");
+            JButton resetButton    = new JButton("Reset All");
+            JButton quizToggle     = new JButton("Start Quiz");
+
             JLabel modeLabel = new JLabel("Current Mode: Undirected");
 
-
-            JTextArea explanation = new JTextArea(8, 20);
-            explanation.setEditable(false);
-            explanation.setLineWrap(true);
-            explanation.setWrapStyleWord(true);
-
-            explanation.setText(
-                    "Instructions:\n\n" +
-                            "• Click to add nodes.\n" +
-                            "• Click two nodes to connect them.\n" +
-                            "• Toggle directed/undirected mode anytime.\n" +
-                            "• Reset to start over.\n" +
-                            "• Visualize BFS, DFS, Dijkstra, or Topological Sort."
-            );
-
+            // Algorithm buttons
             bfsButton.addActionListener(e -> {
-                String input = JOptionPane.showInputDialog("Start node for BFS:");
-                int start = Integer.parseInt(input);
-                List<Integer> order = Algo.bfs(panel.getGraph(), start);
-                panel.setPath(order);
-            });
-
-            dfsButton.addActionListener(e -> {
-                String input = JOptionPane.showInputDialog("Start node for DFS:");
-                int start = Integer.parseInt(input);
-                List<Integer> order = Algo.dfs(panel.getGraph(), start);
-                panel.setPath(order);
-            });
-
-            dijkstraButton.addActionListener(e -> {
-                int src = Integer.parseInt(JOptionPane.showInputDialog("Source node for Dijkstra:"));
-                int dst = Integer.parseInt(JOptionPane.showInputDialog("Destination node for Dijkstra:"));
-                List<Integer> path = Algo.dijkstra(panel.getGraph(), src, dst);
-                panel.setPath(path);
-            });
-
-            topoButton.addActionListener(e -> {
-                List<Integer> order = Algo.toposort(panel.getGraph());
-                if (order == null) {
-                    JOptionPane.showMessageDialog(panel, "Graph is not a DAG. Topological sort not possible.");
-                } else {
+                if (!panel.quizMode) {
+                    String input = JOptionPane.showInputDialog("Start node for BFS:");
+                    int start = Integer.parseInt(input.trim());
+                    List<Integer> order = Algo.bfs(panel.getGraph(), start);
                     panel.setPath(order);
+                } else {
+                    panel.startBFSQuiz();
                 }
             });
 
+            dfsButton.addActionListener(e -> {
+                if (!panel.quizMode) {
+                    String input = JOptionPane.showInputDialog("Start node for DFS:");
+                    int start = Integer.parseInt(input.trim());
+                    List<Integer> order = Algo.dfs(panel.getGraph(), start);
+                    panel.setPath(order);
+                } else {
+                    panel.startDFSQuiz();
+                }
+            });
+
+            dijkstraButton.addActionListener(e -> {
+                if (!panel.quizMode) {
+                    int src = Integer.parseInt(
+                            JOptionPane.showInputDialog("Source node for Dijkstra:")
+                    );
+                    int dst = Integer.parseInt(
+                            JOptionPane.showInputDialog("Destination node for Dijkstra:")
+                    );
+                    List<Integer> path = Algo.dijkstra(panel.getGraph(), src, dst);
+                    panel.setPath(path);
+                } else {
+                    panel.startDijkstraQuiz();
+                }
+            });
+
+            topoButton.addActionListener(e -> {
+                if (!panel.quizMode) {
+                    List<Integer> order = Algo.toposort(panel.getGraph());
+                    if (order == null) {
+                        JOptionPane.showMessageDialog(panel, "Graph is not a DAG.");
+                    } else {
+                        panel.setPath(order);
+                    }
+                } else {
+                    panel.startTopoQuiz();
+                }
+            });
+
+            // Navigation & mode controls
             prevButton.addActionListener(e -> panel.prevStep());
             nextButton.addActionListener(e -> panel.nextStep());
             toggleButton.addActionListener(e -> {
                 panel.toggleDirected();
                 String mode = panel.isDirected ? "DIRECTED" : "UNDIRECTED";
                 JOptionPane.showMessageDialog(panel, "Graph is now " + mode + "!");
-                modeLabel.setText("Current Mode:" + mode);
+                modeLabel.setText("Current Mode: " +
+                        (panel.quizMode ? "QUIZ" : (panel.isDirected ? "DIRECTED" : "UNDIRECTED"))
+                );
             });
-            resetButton.addActionListener(e -> {
-                panel.resetAll();
+            resetButton.addActionListener(e -> panel.resetAll());
+
+            // Quiz toggle
+            quizToggle.addActionListener(e -> {
+                panel.quizMode = !panel.quizMode;
+                quizToggle.setText(panel.quizMode ? "End Quiz" : "Start Quiz");
+                modeLabel.setText("Current Mode: " +
+                        (panel.quizMode ? "QUIZ" : (panel.isDirected ? "DIRECTED" : "UNDIRECTED"))
+                );
             });
 
+            // Instruction text
+            JTextArea explanation = new JTextArea(8, 20);
+            explanation.setEditable(false);
+            explanation.setLineWrap(true);
+            explanation.setWrapStyleWord(true);
+            explanation.setText(
+                    "Instructions:\n\n" +
+                            "• Click to add nodes.\n" +
+                            "• Click two nodes to connect them.\n" +
+                            "• Toggle directed/undirected anytime.\n" +
+                            "• Reset to start over.\n" +
+                            "• Start Quiz to test yourself on BFS, DFS,\n" +
+                            "  Dijkstra, or Topological Sort."
+            );
 
+            // Assemble sidebar
             sidebar.add(bfsButton);
             sidebar.add(dfsButton);
             sidebar.add(dijkstraButton);
@@ -297,9 +392,8 @@ public class Visualizer extends JPanel implements MouseListener {
             sidebar.add(nextButton);
             sidebar.add(toggleButton);
             sidebar.add(resetButton);
+            sidebar.add(quizToggle);
             sidebar.add(modeLabel);
-
-
 
             frame.add(sidebar, BorderLayout.SOUTH);
             frame.add(new JScrollPane(explanation), BorderLayout.EAST);
@@ -307,6 +401,7 @@ public class Visualizer extends JPanel implements MouseListener {
         });
     }
 
+    // Empty MouseListener methods
     @Override public void mouseClicked(MouseEvent e) {}
     @Override public void mouseReleased(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}
