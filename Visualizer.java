@@ -379,8 +379,8 @@ public class Visualizer extends JPanel implements MouseListener {
                             "• Click two nodes to connect them.\n" +
                             "• Toggle directed/undirected anytime.\n" +
                             "• Reset to start over.\n" +
-                            "• Start Quiz to test yourself on BFS, DFS,\n" +
-                            "  Dijkstra, or Topological Sort."
+                            "• Start Quiz to test yourself on BFS, DFS, Dijkstra, or Topological Sort. " + 
+                            " (We are using the BFS/DFS in class where it goes to a random node after finishing processing all avaliable nodes from the starting node.)"
             );
 
             // Assemble sidebar
