@@ -44,4 +44,10 @@ public class Graph {
         }
         return list[v].keySet();
     }
+
+    public void clear() {
+        for (int i = 0; i < size; i++) {
+            list[i].clear();
+        }
+    }
 }

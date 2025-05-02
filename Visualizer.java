@@ -13,7 +13,6 @@ public class Visualizer extends JPanel implements MouseListener {
     private final Graph graph;
     private final int radius = 20;
     private int selectedNode = -1;
-
     private List<Integer> fullPath = new ArrayList<>();
     private List<Integer> highlightedPath = new ArrayList<>();
     private Timer timer;
@@ -205,6 +204,7 @@ public class Visualizer extends JPanel implements MouseListener {
         highlightedPath.clear();
         selectedNode = -1;
         highlightIndex = -1;
+        graph.clear();
         repaint();
     }
 
