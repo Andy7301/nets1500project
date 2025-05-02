@@ -1,5 +1,4 @@
 import java.util.*;
-// make sure all the algos still work if the graph is disconnected
 
 public class Algo {
     public static List<Integer> bfs(Graph g, int start) {
@@ -8,16 +7,18 @@ public class Algo {
         if (start < 0 || start >= n) {
             return order;
         }
-        boolean[] seen = new boolean[n];
+        Set<Integer> seen  = new HashSet<>();
         Queue<Integer> q = new ArrayDeque<>();
-        seen[start] = true;
+        seen.add(start);
         q.add(start);
         while (!q.isEmpty()) {
             int u = q.poll();
             order.add(u);
-            for (int v : g.outNeighbors(u)) {
-                if (!seen[v]) {
-                    seen[v] = true;
+            List<Integer> neighbors = new ArrayList<>(g.outNeighbors(u));
+            Collections.sort(neighbors);
+            for (int v : neighbors) {
+                if (!seen.contains(v)) {
+                    seen.add(v);
                     q.add(v);
                 }
             }
@@ -31,16 +32,21 @@ public class Algo {
         if (start < 0 || start >= n) {
             return order;
         }
-        boolean[] seen = new boolean[n];
+        Set<Integer> seen = new HashSet<>();
         Deque<Integer> stack = new ArrayDeque<>();
         stack.push(start);
         while (!stack.isEmpty()) {
             int u = stack.pop();
-            if (!seen[u]) {
-                seen[u] = true;
+            if (!seen.contains(u)) {
+                seen.add(u);
                 order.add(u);
-                for (int v : g.outNeighbors(u)) {
-                    if (!seen[v]) stack.push(v);
+                List<Integer> neighbors = new ArrayList<>(g.outNeighbors(u));
+                Collections.sort(neighbors);
+                Collections.reverse(neighbors);
+                for (int v : neighbors) {
+                    if (!seen.contains(v)) {
+                        stack.push(v);
+                    }
                 }
             }
         }
