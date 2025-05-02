@@ -111,12 +111,15 @@ public class Algo {
 
     public static List<Integer> toposort(Graph g) {
         int n = g.getSize();
-        boolean[] seen = new boolean[n];
+        boolean[] seen    = new boolean[n];
+        boolean[] onStack = new boolean[n];
         Deque<Integer> stack = new ArrayDeque<>();
 
         for (int i = 0; i < n; i++) {
             if (!seen[i]) {
-                dfsTopoHelper(i, g, seen, stack);
+                if (!dfsTopoHelper(i, g, seen, onStack, stack)) {
+                    return null;
+                }
             }
         }
 
@@ -124,21 +127,29 @@ public class Algo {
         while (!stack.isEmpty()) {
             sort.add(stack.pop());
         }
-
         return sort;
     }
 
-    private static void dfsTopoHelper(int v, Graph g, boolean[] seen, Deque<Integer> stack) {
+    private static boolean dfsTopoHelper(int v, Graph g, boolean[] seen, boolean[] onStack, Deque<Integer> stack) {
         seen[v] = true;
+        onStack[v] = true;
 
-        List<Integer> neighbors = new ArrayList<>(g.outNeighbors(v));
-        Collections.sort(neighbors);
+        List<Integer> nbrs = new ArrayList<>(g.outNeighbors(v));
+        Collections.sort(nbrs);
 
-        for (int neighbor : neighbors) {
-            if (!seen[neighbor]) {
-                dfsTopoHelper(neighbor, g, seen, stack);
+        for (int u : nbrs) {
+            if (onStack[u]) {
+                return false;
+            }
+            if (!seen[u]) {
+                if (!dfsTopoHelper(u, g, seen, onStack, stack)) {
+                    return false;
+                }
             }
         }
+
+        onStack[v] = false;
         stack.push(v);
+        return true;
     }
 }
