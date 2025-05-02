@@ -14,6 +14,7 @@ public class Visualizer extends JPanel implements MouseListener {
     private final Graph graph;
     private final int radius = 20;
     private int selectedNode = -1;
+
     private List<Integer> fullPath = new ArrayList<>();
     private List<Integer> highlightedPath = new ArrayList<>();
     private Timer timer;
@@ -167,6 +168,15 @@ public class Visualizer extends JPanel implements MouseListener {
 
     public void toggleDirected() {
         isDirected = !isDirected;
+        graph.clear();
+        for (int[] e : edges) {
+            int u = e[0];
+            int v = e[1];
+            graph.addEdge(u, v, 1);
+            if (!isDirected) {
+                graph.addEdge(v, u, 1);
+            }
+        }
         repaint();
     }
 
@@ -177,7 +187,6 @@ public class Visualizer extends JPanel implements MouseListener {
         highlightedPath.clear();
         selectedNode = -1;
         highlightIndex = -1;
-        graph.clear();
         repaint();
     }
 
@@ -379,7 +388,8 @@ public class Visualizer extends JPanel implements MouseListener {
                             "• Click two nodes to connect them.\n" +
                             "• Toggle directed/undirected anytime.\n" +
                             "• Reset to start over.\n" +
-                            "• Start Quiz to test yourself on BFS, DFS, Dijkstra, or Topological Sort. "
+                            "• Start Quiz to test yourself on BFS, DFS,\n" +
+                            "  Dijkstra, or Topological Sort."
             );
 
             // Assemble sidebar
