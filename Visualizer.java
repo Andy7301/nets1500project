@@ -23,6 +23,8 @@ public class Visualizer extends JPanel implements MouseListener {
     private static final int MAX_NODES = 100;
     private boolean isDirected = false;
     private boolean quizMode = false;
+    private boolean isWeighted = false;
+
 
     public Visualizer() {
         this.nodes = new ArrayList<>();
@@ -42,6 +44,38 @@ public class Visualizer extends JPanel implements MouseListener {
             Point p1 = nodes.get(edge[0]);
             Point p2 = nodes.get(edge[1]);
             drawEdge(g, p1, p2, isDirected);
+            // Draw edges (and weights if weighted)
+            // inside your paintComponent edge loop, after drawEdge():
+            if (isWeighted) {
+                int u = edge[0], v = edge[1];
+                int w = graph.getWeight(u, v);
+
+                // compute midpoint
+                int midX = (p1.x + p2.x) / 2;
+                int midY = (p1.y + p2.y) / 2;
+
+                // compute a perpendicular offset
+                double dx = p2.x - p1.x;
+                double dy = p2.y - p1.y;
+                double dist = Math.hypot(dx, dy);
+                if (dist != 0) {
+                    double px = -dy / dist;
+                    double py = dx / dist;
+
+                    int labelOffset = 15;
+                    int offsetX = (int) (px * labelOffset);
+                    int offsetY = (int) (py * labelOffset);
+
+                    midX += offsetX;
+                    midY += offsetY;
+                }
+
+                // draw the weight
+                g.setColor(Color.RED);
+                g.drawString(String.valueOf(w), midX, midY);
+                g.setColor(Color.BLACK);
+            }
+
         }
 
         // Draw nodes
@@ -180,6 +214,43 @@ public class Visualizer extends JPanel implements MouseListener {
         repaint();
     }
 
+    public void toggleWeighted() {
+        isWeighted = !isWeighted;
+
+        if (isWeighted) {
+            // from unweighted → weighted: ask for each edge’s weight
+            for (int[] edge : edges) {
+                int u = edge[0], v = edge[1];
+                String wStr = JOptionPane.showInputDialog(
+                        this,
+                        "Enter weight for edge " + u + " → " + v + ":"
+                );
+                int w;
+                try {
+                    w = Integer.parseInt(wStr.trim());
+                } catch (Exception ex) {
+                    w = 1;  // default to 1 on bad input
+                }
+                graph.setWeight(u, v, w);
+                if (!isDirected) {
+                    graph.setWeight(v, u, w);
+                }
+            }
+        } else {
+            // weighted → unweighted: reset all weights to 1
+            for (int[] edge : edges) {
+                int u = edge[0], v = edge[1];
+                graph.setWeight(u, v, 1);
+                if (!isDirected) {
+                    graph.setWeight(v, u, 1);
+                }
+            }
+        }
+
+        repaint();
+    }
+
+
     public void resetAll() {
         nodes.clear();
         edges.clear();
@@ -301,6 +372,8 @@ public class Visualizer extends JPanel implements MouseListener {
             JButton toggleButton   = new JButton("Toggle Directed/Undirected");
             JButton resetButton    = new JButton("Reset All");
             JButton quizToggle     = new JButton("Start Quiz");
+            JButton weightToggle = new JButton("Toggle Weighted/Unweighted");
+            sidebar.add(weightToggle);
 
             JLabel modeLabel = new JLabel("Current Mode: Undirected");
 
@@ -377,6 +450,20 @@ public class Visualizer extends JPanel implements MouseListener {
                 );
             });
 
+            weightToggle.addActionListener(e -> {
+                panel.toggleWeighted();
+                String weightMode = panel.isWeighted ? "WEIGHTED" : "UNWEIGHTED";
+                modeLabel.setText("Current Mode: " +
+                        (panel.quizMode
+                                ? "QUIZ"
+                                : (panel.isDirected ? "DIRECTED" : weightMode))
+                );
+                JOptionPane.showMessageDialog(
+                        panel,
+                        "Graph is now in " + weightMode + " mode!"
+                );
+            });
+
             // Instruction text
             JTextArea explanation = new JTextArea(8, 20);
             explanation.setEditable(false);
@@ -387,10 +474,11 @@ public class Visualizer extends JPanel implements MouseListener {
                             "• Click to add nodes.\n" +
                             "• Click two nodes to connect them.\n" +
                             "• Toggle directed/undirected anytime.\n" +
+                            "• **Toggle weighted/unweighted anytime.**\n" +
                             "• Reset to start over.\n" +
-                            "• Start Quiz to test yourself on BFS, DFS,\n" +
-                            "  Dijkstra, or Topological Sort."
+                            "• Start Quiz to test yourself on BFS, DFS, Dijkstra, or Topological Sort."
             );
+
 
             // Assemble sidebar
             sidebar.add(bfsButton);

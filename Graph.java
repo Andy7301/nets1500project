@@ -55,6 +55,15 @@ public class Graph {
         return list[v].keySet();
     }
 
+    public void setWeight(int u, int v, int w) {
+        if (u < 0 || v < 0 || u >= size || v >= size)
+            throw new IllegalArgumentException();
+        if (!list[u].containsKey(v))
+            throw new NoSuchElementException();
+        list[u].put(v, w);
+    }
+
+
     public void clear() {
         for (int i = 0; i < size; i++) {
             list[i].clear();
