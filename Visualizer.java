@@ -145,19 +145,36 @@ public class Visualizer extends JPanel implements MouseListener {
                     // determine weight
                     int w = 1;
                     if (isWeighted) {
-                        String ws = JOptionPane.showInputDialog(
+                        w = -1;
+                        while (w < 0) {
+                            String ws = JOptionPane.showInputDialog(
                                 this,
-                                "Enter weight for edge " + selectedNode + " → " + nodeIdx + ":",
+                                "Enter non‑negative weight for edge " + selectedNode + " → " + nodeIdx + ":",
                                 "Edge Weight",
                                 JOptionPane.QUESTION_MESSAGE
-                        );
-                        try {
-                            w = Integer.parseInt(ws.trim());
-                        } catch (Exception ex) {
-                            // fallback to 1 if input invalid or cancelled
-                            w = 1;
+                            );
+                            if (ws == null) {
+                                // user cancelled – default back to 1
+                                w = 1;
+                                break;
+                            }
+                            try {
+                                w = Integer.parseInt(ws.trim());
+                                if (w < 0) {
+                                    JOptionPane.showMessageDialog(
+                                        this,
+                                        "Weight must be 0 or positive. Please try again."
+                                    );
+                                }
+                            } catch (NumberFormatException ex) {
+                                JOptionPane.showMessageDialog(
+                                    this,
+                                    "Invalid input. Please enter a non‑negative integer."
+                                );
+                                w = -1;  // continue looping
+                            }
                         }
-                    }
+                    }                    
 
                     // add the forward edge
                     graph.addEdge(selectedNode, nodeIdx, w);
@@ -271,15 +288,34 @@ public class Visualizer extends JPanel implements MouseListener {
             // from unweighted → weighted: ask for each edge’s weight
             for (int[] edge : edges) {
                 int u = edge[0], v = edge[1];
-                String wStr = JOptionPane.showInputDialog(
+                int w = -1;
+                while (w < 0) {
+                    String wStr = JOptionPane.showInputDialog(
                         this,
-                        "Enter weight for edge " + u + " → " + v + ":"
-                );
-                int w;
-                try {
-                    w = Integer.parseInt(wStr.trim());
-                } catch (Exception ex) {
-                    w = 1;  // default to 1 on bad input
+                        "Enter non‑negative weight for edge " + u + " → " + v + ":",
+                        "Edge Weight",
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+                    if (wStr == null) {
+                        // user cancelled: default to 1
+                        w = 1;
+                        break;
+                    }
+                    try {
+                        w = Integer.parseInt(wStr.trim());
+                        if (w < 0) {
+                            JOptionPane.showMessageDialog(
+                                this,
+                                "Weight must be 0 or positive. Please try again."
+                            );
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Invalid input. Please enter a non‑negative integer."
+                        );
+                        w = -1;  // keep looping
+                    }
                 }
                 graph.setWeight(u, v, w);
                 if (!isDirected) {
@@ -427,7 +463,7 @@ public class Visualizer extends JPanel implements MouseListener {
             JButton weightToggle = new JButton("Toggle Weighted/Unweighted");
             sidebar.add(weightToggle);
 
-            JLabel modeLabel = new JLabel("Current Mode: Undirected");
+            JLabel modeLabel = new JLabel("Current Mode: Undirected Unweighted");
 
             // Algorithm buttons
             bfsButton.addActionListener(e -> {
@@ -526,7 +562,7 @@ public class Visualizer extends JPanel implements MouseListener {
                             "• Click to add nodes.\n" +
                             "• Click two nodes to connect them.\n" +
                             "• Toggle directed/undirected anytime.\n" +
-                            "• **Toggle weighted/unweighted anytime.**\n" +
+                            "• Toggle weighted/unweighted anytime.\n" +
                             "• Reset to start over.\n" +
                             "• Start Quiz to test yourself on BFS, DFS, Dijkstra, or Topological Sort."
             );

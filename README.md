@@ -8,11 +8,11 @@ This Java Swing application lets users build and explore graphs interactively.  
 
 Work Breakdown:
 
-Andy Wang - BFS, DFS, Graph.java, Forward/Backward step feature, Instructions box
+Andy Wang - BFS, DFS, Dijkstra, Graph.java, Forward/Backward step feature, Instructions box, Readme, User manual, Comments
 
-Edward Zhang - Most of the visualizer (adding nodes and edges, connecting the algorithms to buttons, toggling between undirected/directed, reset all)
+Edward Zhang - Most of the visualizer (adding nodes and edges, connecting the algorithms to buttons, toggling between undirected/directed, toggle between weighted/unweighted, reset all)
 
-Jereth Liu - Topo sort, Quiz functionality, toggling between undirected/directed
+Jereth Liu - Topo sort, Quiz functionality, fixed toggling between undirected/directed to maintain graph, fixed bfs/dfs to explore other connected components like in class
 
 
 
