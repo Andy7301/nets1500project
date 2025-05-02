@@ -4,7 +4,7 @@ public class Graph {
     private final int size;
     private final Map<Integer, Integer>[] list;
     public Graph(int n) {
-        if (n <= 0) { 
+        if (n <= 0) {
             throw new IllegalArgumentException();
         }
         size = n;
@@ -13,8 +13,8 @@ public class Graph {
             list[i] = new HashMap<>();
         }
     }
-    public int getSize() { 
-        return size; 
+    public int getSize() {
+        return size;
     }
     public boolean hasEdge(int u, int v) {
         if (u < 0 || v < 0 || u >= size || v >= size) {
@@ -38,16 +38,6 @@ public class Graph {
         list[u].put(v, w);
         return true;
     }
-    public boolean removeEdge(int u, int v, int w) {
-        if (u < 0 || v < 0 || u >= size || v >= size || u == v) {
-            throw new IllegalArgumentException();
-        }
-        if (list[u].containsKey(v)) {
-            list[u].remove(v);
-            return true;
-        }
-        return false;
-    }
     public Set<Integer> outNeighbors(int v) {
         if (v < 0 || v >= size) {
             throw new IllegalArgumentException();
@@ -64,8 +54,8 @@ public class Graph {
     }
 
     public void clear() {
-        for (int i = 0; i < size; i++) {
-            list[i].clear();
+        for (Map<Integer,Integer> neighbors : list) {
+            neighbors.clear();
         }
     }
 }

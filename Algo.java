@@ -22,6 +22,15 @@ public class Algo {
                     q.add(v);
                 }
             }
+            if (q.isEmpty() && seen.size() != n) {
+                for (int i = 0; i < n; i++) {
+                    if (!seen.contains(i)) {
+                        seen.add(i);
+                        q.add(i);
+                        break;
+                    }
+                }
+            }
         }
         return order;
     }
@@ -46,6 +55,14 @@ public class Algo {
                 for (int v : neighbors) {
                     if (!seen.contains(v)) {
                         stack.push(v);
+                    }
+                }
+            }
+            if (stack.isEmpty() && seen.size() != n) {
+                for (int i = 0; i < n; i++) {
+                    if (!seen.contains(i)) {
+                        stack.push(i);
+                        break;
                     }
                 }
             }
@@ -98,7 +115,9 @@ public class Algo {
         Deque<Integer> stack = new ArrayDeque<>();
 
         for (int i = 0; i < n; i++) {
-            dfsTopoHelper(i, g, seen, stack);
+            if (!seen[i]) {
+                dfsTopoHelper(i, g, seen, stack);
+            }
         }
 
         List<Integer> sort = new ArrayList<>();
@@ -112,7 +131,10 @@ public class Algo {
     private static void dfsTopoHelper(int v, Graph g, boolean[] seen, Deque<Integer> stack) {
         seen[v] = true;
 
-        for (int neighbor : g.outNeighbors(v)) {
+        List<Integer> neighbors = new ArrayList<>(g.outNeighbors(v));
+        Collections.sort(neighbors);
+
+        for (int neighbor : neighbors) {
             if (!seen[neighbor]) {
                 dfsTopoHelper(neighbor, g, seen, stack);
             }

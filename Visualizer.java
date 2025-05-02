@@ -219,7 +219,20 @@ public class Visualizer extends JPanel implements MouseListener {
     }
 
     public Graph getGraph() {
-        return graph;
+        return dummyGraph();
+    }
+
+    public Graph dummyGraph() {
+        Graph dummy = new Graph(nodes.size());
+        for (int[] e : edges) {
+            int u = e[0];
+            int v = e[1];
+            dummy.addEdge(u, v, 1);
+            if (!isDirected) {
+                dummy.addEdge(v, u, 1);
+            }
+        }
+        return dummy;
     }
 
     public void toggleDirected() {
@@ -293,6 +306,7 @@ public class Visualizer extends JPanel implements MouseListener {
         edges.clear();
         fullPath.clear();
         highlightedPath.clear();
+        graph.clear();
         selectedNode = -1;
         highlightIndex = -1;
         repaint();
