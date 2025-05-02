@@ -63,7 +63,6 @@ public class Graph {
         list[u].put(v, w);
     }
 
-
     public void clear() {
         for (int i = 0; i < size; i++) {
             list[i].clear();

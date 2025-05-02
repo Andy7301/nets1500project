@@ -6,6 +6,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Map;
+import java.util.HashMap;
+
 
 public class Visualizer extends JPanel implements MouseListener {
 
@@ -24,7 +27,6 @@ public class Visualizer extends JPanel implements MouseListener {
     private boolean isDirected = false;
     private boolean quizMode = false;
     private boolean isWeighted = false;
-
 
     public Visualizer() {
         this.nodes = new ArrayList<>();
@@ -140,10 +142,30 @@ public class Visualizer extends JPanel implements MouseListener {
                 selectedNode = nodeIdx;
             } else {
                 if (selectedNode != nodeIdx && !graph.hasEdge(selectedNode, nodeIdx)) {
-                    graph.addEdge(selectedNode, nodeIdx, 1);
-                    if (!isDirected) {
-                        graph.addEdge(nodeIdx, selectedNode, 1);
+                    // determine weight
+                    int w = 1;
+                    if (isWeighted) {
+                        String ws = JOptionPane.showInputDialog(
+                                this,
+                                "Enter weight for edge " + selectedNode + " → " + nodeIdx + ":",
+                                "Edge Weight",
+                                JOptionPane.QUESTION_MESSAGE
+                        );
+                        try {
+                            w = Integer.parseInt(ws.trim());
+                        } catch (Exception ex) {
+                            // fallback to 1 if input invalid or cancelled
+                            w = 1;
+                        }
                     }
+
+                    // add the forward edge
+                    graph.addEdge(selectedNode, nodeIdx, w);
+                    // mirror if undirected
+                    if (!isDirected) {
+                        graph.addEdge(nodeIdx, selectedNode, w);
+                    }
+                    // record it for drawing & future toggles
                     edges.add(new int[]{selectedNode, nodeIdx});
                 }
                 selectedNode = -1;
@@ -202,17 +224,32 @@ public class Visualizer extends JPanel implements MouseListener {
 
     public void toggleDirected() {
         isDirected = !isDirected;
-        graph.clear();
+
+        // 1) Snap‐shot the old weights
+        Map<String,Integer> oldWeights = new HashMap<>();
         for (int[] e : edges) {
-            int u = e[0];
-            int v = e[1];
-            graph.addEdge(u, v, 1);
+            int u = e[0], v = e[1];
+            // key as "u,v"
+            oldWeights.put(u + "," + v, graph.getWeight(u, v));
+        }
+
+        // 2) Clear out the adjacency
+        graph.clear();
+
+        // 3) Re‐insert every edge using its original weight
+        for (int[] e : edges) {
+            int u = e[0], v = e[1];
+            int w = oldWeights.get(u + "," + v);
+            graph.addEdge(u, v, w);
             if (!isDirected) {
-                graph.addEdge(v, u, 1);
+                // undirected mode ⇒ also mirror it
+                graph.addEdge(v, u, w);
             }
         }
+
         repaint();
     }
+
 
     public void toggleWeighted() {
         isWeighted = !isWeighted;
@@ -349,6 +386,7 @@ public class Visualizer extends JPanel implements MouseListener {
         giveFeedback(user, correct);
         visualize(correct);
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
