@@ -38,16 +38,20 @@ public class Graph {
         list[u].put(v, w);
         return true;
     }
+    public boolean removeEdge(int u, int v, int w) {
+        if (u < 0 || v < 0 || u >= size || v >= size || u == v) {
+            throw new IllegalArgumentException();
+        }
+        if (list[u].containsKey(v)) {
+            list[u].remove(v);
+            return true;
+        }
+        return false;
+    }
     public Set<Integer> outNeighbors(int v) {
         if (v < 0 || v >= size) {
             throw new IllegalArgumentException();
         }
         return list[v].keySet();
-    }
-
-    public void clear() {
-        for (int i = 0; i < size; i++) {
-            list[i].clear();
-        }
     }
 }
