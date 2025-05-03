@@ -14,7 +14,4 @@ Andy Wang – Implemented BFS, DFS, and Dijkstra’s algorithms, implemented Gra
 
 Edward Zhang – Built the visualizer UI for node placement and edge creation, connected algorithm buttons, implemented directed/undirected and weighted/unweighted toggles, added reset functionality.
 
-Jereth Liu – Implemented Topo Sort with cycle detection, developed the quiz mode, helped preserve graph structure when toggling between weighted/uneweightedm, modified BFS/DFS to traverse disconnected components like how they were taught in class.
-
-
-
+Jereth Liu – Implemented Topo Sort with cycle detection, developed the quiz mode, helped preserve graph structure when toggling between weighted/unweighted, modified BFS/DFS to traverse disconnected components like how they were taught in class.
